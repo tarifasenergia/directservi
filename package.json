@@ -1,0 +1,17 @@
+{
+	"name": "plantillalibre",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev"
+	},
+	"devDependencies": {
+		"@supabase/supabase-js": "^2.50.0",
+		"wrangler": "^4.21.0"
+	},
+	"dependencies": {
+		"@supabase/ssr": "^0.6.1"
+	}
+}
