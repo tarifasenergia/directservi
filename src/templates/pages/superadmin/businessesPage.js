@@ -1,4 +1,4 @@
-// /templates/pages/superadmin/businessesPage.js
+// /templates/pages/superadmin/businessesPage.js (Actualizado)
 
 import { escapeHTML } from '../../../utils.js';
 
@@ -12,12 +12,10 @@ import { escapeHTML } from '../../../utils.js';
 export const SuperAdminBusinessesPage = (companies = [], businesses = [], message = null) => {
     const messageHtml = message ? `<div class="alert alert-info">${escapeHTML(message)}</div>` : '';
 
-    // Opciones del <select> para compañías
     const companyOptions = companies.map(c =>
         `<option value="${c.id}">${escapeHTML(c.name)} (${escapeHTML(c.cif)})</option>`
     ).join('');
 
-    // Filas de la tabla para los negocios existentes
     const businessRows = businesses.map(b => `
         <tr>
             <td>${escapeHTML(b.id)}</td>
@@ -25,7 +23,7 @@ export const SuperAdminBusinessesPage = (companies = [], businesses = [], messag
             <td>${escapeHTML(b.company?.name || 'N/A')}</td>
             <td><span class="badge bg-secondary">${escapeHTML(b.status)}</span></td>
             <td>
-                <a href="#" class="btn btn-sm btn-warning">Editar</a>
+                <a href="/superadmin/businesses/edit?id=${b.id}" class="btn btn-sm btn-warning">Editar</a>
             </td>
         </tr>
     `).join('');
