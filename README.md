@@ -22,6 +22,7 @@ Este es un proyecto de plantilla libre para una aplicación web server-side rend
 - [Node.js](https://nodejs.org/) (versión 14 o superior)
 - [npm](https://www.npmjs.com/) (generalmente se instala con Node.js)
 - Una cuenta de [Cloudflare](https://www.cloudflare.com/)
+- Instalar o actualizar Wrangler (https://developers.cloudflare.com/workers/wrangler/install-and-update/)(npm i -D wrangler@latest)
 - Una cuenta de [Supabase](https://supabase.com/)
 
 ## Instalación
