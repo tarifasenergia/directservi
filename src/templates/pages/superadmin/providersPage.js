@@ -1,76 +1,113 @@
-// /templates/pages/superadmin/providersPage.js
+// /src/templates/pages/superadmin/providersPage.js
 
 import { escapeHTML } from '../../../utils.js';
 
-/**
- * Renderiza la página de gestión de proveedores de energía para el Superadministrador.
- * @param {Array} providers - Lista de todos los proveedores globales.
- * @param {string|null} message - Un mensaje de éxito o error.
- * @returns {string} El HTML de la página.
- */
-export const SuperAdminProvidersPage = (providers = [], message = null) => {
-    const messageHtml = message ? `<div class="alert alert-info">${escapeHTML(message)}</div>` : '';
+const renderPagination = (currentPage, totalItems, pageSize, searchQuery) => {
+    if (totalItems <= pageSize) return '';
+    const totalPages = Math.ceil(totalItems / pageSize);
+    let html = '<nav><ul class="pagination pagination-sm justify-content-end">';
 
-    const providerRows = providers.map(p => `
+    for (let i = 1; i <= totalPages; i++) {
+        const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+        html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="?page=${i}${searchParam}">${i}</a></li>`;
+    }
+
+    html += '</ul></nav>';
+    return html;
+};
+
+export const SuperAdminProvidersPage = (props) => {
+    const { providers, message, currentPage, searchQuery, pageSize } = props;
+
+    const messageHtml = message ? `<div class="alert alert-info alert-dismissible fade show" role="alert">${escapeHTML(message)}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>` : '';
+
+    const providerRows = providers.data.map(p => `
         <tr>
-            <td>${escapeHTML(p.id)}</td>
             <td>
-                ${p.logo_url ? `<img src="${escapeHTML(p.logo_url)}" alt="Logo ${escapeHTML(p.name)}" style="max-height: 40px; max-width: 120px; object-fit: contain;">` : ''}
+                ${p.logo_b64 ? `<img src="${p.logo_b64}" alt="Logo ${escapeHTML(p.name)}" style="max-height: 40px; max-width: 120px; object-fit: contain; background-color: #f8f9fa; padding: 2px; border-radius: 4px;">` : ''}
             </td>
             <td><strong>${escapeHTML(p.name)}</strong></td>
-            <td>
-                <a href="#" class="btn btn-sm btn-warning">Editar</a>
+            <td><small class="text-muted">${escapeHTML(p.notes || '')}</small></td>
+            <td class="d-flex gap-1">
+                <button type="button" class="btn btn-sm btn-warning edit-provider-btn"
+                        data-bs-toggle="modal" data-bs-target="#providerModal"
+                        data-id="${p.id}"
+                        data-name="${escapeHTML(p.name)}"
+                        data-notes="${escapeHTML(p.notes || '')}"
+                        data-logo="${p.logo_b64 || ''}">
+                    Editar
+                </button>
+                <form action="/superadmin/providers?action=delete_provider" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este proveedor?')">
+                    <input type="hidden" name="id" value="${p.id}">
+                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                </form>
             </td>
         </tr>
     `).join('');
 
     return `
         ${messageHtml}
-        <div class="row">
-            <div class="col-lg-4">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Añadir Nuevo Proveedor Global</h5>
+        <div class="card shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Lista Maestra de Proveedores</h5>
+                <button class="btn btn-primary btn-sm" id="createProviderBtn" data-bs-toggle="modal" data-bs-target="#providerModal">
+                    + Añadir Proveedor
+                </button>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="/superadmin/providers" class="mb-3">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Buscar por nombre..." value="${escapeHTML(searchQuery)}">
+                        <button class="btn btn-outline-secondary" type="submit">Buscar</button>
                     </div>
-                    <div class="card-body">
-                        <form method="POST" action="/superadmin/providers?action=create_provider">
-                            <div class="mb-3">
-                                <label for="provider_name" class="form-label">Nombre del Proveedor</label>
-                                <input type="text" id="provider_name" name="name" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="logo_url" class="form-label">URL del Logotipo (Opcional)</label>
-                                <input type="url" id="logo_url" name="logo_url" class="form-control">
-                                <div class="form-text">Pega la URL completa de una imagen del logo.</div>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Guardar Proveedor</button>
-                        </form>
-                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle">
+                        <thead>
+                            <tr><th>Logo</th><th>Nombre</th><th>Observaciones</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody>
+                            ${providerRows.length > 0 ? providerRows : `<tr><td colspan="4" class="text-center text-muted">No hay proveedores registrados.</td></tr>`}
+                        </tbody>
+                    </table>
                 </div>
             </div>
+            <div class="card-footer bg-light">
+                ${renderPagination(currentPage, providers.count || 0, pageSize, searchQuery)}
+            </div>
+        </div>
 
-            <div class="col-lg-8">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0">Lista Maestra de Proveedores</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Logo</th>
-                                        <th>Nombre</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${providerRows.length > 0 ? providerRows : `<tr><td colspan="4" class="text-center text-muted">No hay proveedores registrados.</td></tr>`}
-                                </tbody>
-                            </table>
+        <!-- Modal para Crear/Editar Proveedor -->
+        <div class="modal fade" id="providerModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="providerForm" method="POST">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="providerModalLabel"></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-                    </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="provider_id_input" name="id">
+                            <div class="mb-3">
+                                <label for="provider_name_input" class="form-label">Nombre del Proveedor</label>
+                                <input type="text" class="form-control" id="provider_name_input" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="provider_notes_input" class="form-label">Observaciones (Opcional)</label>
+                                <textarea class="form-control" id="provider_notes_input" name="notes" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="logo_file_input" class="form-label">Logotipo</label>
+                                <input type="file" class="form-control logo-file-input" id="logo_file_input" accept="image/*" onchange="previewLogo(event)">
+                                <input type="hidden" name="logo_b64" class="logo-b64-hidden" id="logo_b64_hidden">
+                                <img id="logo_preview_img" src="#" alt="Previsualización" class="img-fluid rounded mt-2 d-none logo-preview-img" style="max-height: 75px;"/>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="providerSubmitBtn"></button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

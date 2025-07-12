@@ -1,4 +1,4 @@
-// /services/supabase.js
+// /src/services/supabase.js
 
 import { createServerClient } from '@supabase/ssr';
 
@@ -55,15 +55,20 @@ export const createSupabaseClient = (request, headers, env) => {
 
 // --- SERVICIOS DE DATOS ---
 
-/**
- * Obtiene el perfil completo de un usuario.
- * Esta nueva versión separa las consultas para evitar errores de RLS con joins anidados.
- * @param {object} supabase - Cliente de Supabase.
- * @param {string} userId - El ID del usuario.
- * @returns {Promise<object|null>} El perfil del usuario o null si no se encuentra.
- */
+export async function getSuperAdminDashboardStats(supabase) {
+    const { data, error } = await supabase.rpc('get_superadmin_dashboard_stats');
+    if (error) {
+        console.error('Error fetching superadmin dashboard stats:', error);
+        return {
+            companies_count: 0, businesses_count: 0, businesses_pending_count: 0,
+            businesses_active_count: 0, users_count: 0, admins_count: 0,
+            sellers_count: 0, base_rates_count: 0, total_proposals_count: 0
+        };
+    }
+    return data;
+}
+
 export async function getUserProfile(supabase, userId) {
-  // --- PASO 1: Obtener el perfil base y el rol ---
   const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('*, role:roles(name)')
@@ -71,20 +76,20 @@ export async function getUserProfile(supabase, userId) {
     .single();
 
   if (profileError) {
-    console.error('Error fetching user profile (step 1):', profileError);
+    if (profileError.code !== 'PGRST116') {
+        console.error('Error fetching user profile:', profileError);
+    }
     return null;
   }
   
   if (!profile) return null;
 
-  // Aplanar el rol para fácil acceso
   const userProfile = {
       ...profile,
       role_name: profile.role ? profile.role.name : null,
-      business: null // Inicializar business como null
+      business: null
   };
 
-  // --- PASO 2: Si el usuario tiene un business_id, obtener los datos de ese negocio ---
   if (profile.business_id) {
     const { data: business, error: businessError } = await supabase
         .from('businesses')
@@ -94,32 +99,135 @@ export async function getUserProfile(supabase, userId) {
     
     if (businessError) {
         console.error(`Error fetching business details for business_id ${profile.business_id}:`, businessError);
-        // Devolvemos el perfil sin los datos del negocio si falla, para no romper la app
-        return userProfile;
+    } else {
+        const styleData = Array.isArray(business.style) ? business.style[0] : business.style;
+        userProfile.business = { ...business, style: styleData };
     }
-
-    // Adjuntar los datos del negocio y sus estilos al perfil del usuario
-    userProfile.business = business;
   }
   
   return userProfile;
 }
 
+// --- Funciones para Superadmin Users ---
 
-// --- El resto de las funciones de servicio permanecen igual ---
+export async function getAllUsersDetailed(supabase, { page = 1, pageSize = 10, searchQuery = '', roleFilter = '', companyFilter = '' } = {}) {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
 
-export async function getCompanies(supabase) {
-    const { data, error } = await supabase.from('companies').select('*');
+    let query = supabase
+        .from('detailed_user_profiles')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+    if (searchQuery) {
+        query = query.or(`full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,business_name.ilike.%${searchQuery}%`);
+    }
+    if (roleFilter) {
+        query = query.eq('role_name', roleFilter);
+    }
+    if (companyFilter) {
+        query = query.eq('company_id', companyFilter);
+    }
+    
+    const { data, error, count } = await query;
+    if (error) console.error('Error fetching all users detailed:', error);
+    return { data: data || [], count: count || 0, error };
+}
+
+export async function getSingleUserDetailed(supabase, userId) {
+    const { data, error } = await supabase
+        .from('detailed_user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+    if (error) console.error(`Error fetching single user ${userId}:`, error);
+    return { data, error };
+}
+
+// --- Funciones para Superadmin Businesses/Companies ---
+
+export async function getCompanies(supabase, { page = 1, pageSize = 10, searchQuery = '' } = {}) {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
+        .from('companies')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+    if (searchQuery) {
+        query = query.or(`name.ilike.%${searchQuery}%,cif.ilike.%${searchQuery}%`);
+    }
+
+    const { data, error, count } = await query;
     if (error) console.error('Error fetching companies:', error);
+    return { data: data || [], count: count || 0, error };
+}
+
+export async function getBusinesses(supabase, { page = 1, pageSize = 10, searchQuery = '' } = {}) {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
+        .from('businesses')
+        .select('*, company:companies(name)', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+        
+    if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`);
+    }
+
+    const { data, error, count } = await query;
+    if (error) console.error('Error fetching businesses:', error);
+    return { data: data || [], count: count || 0, error };
+}
+
+export async function getBusinessWithStyle(supabase, businessId) {
+    const { data, error } = await supabase
+        .from('businesses')
+        .select('*, company:companies(name), style:business_styles(*)')
+        .eq('id', businessId)
+        .single();
+    
+    if (error) {
+        console.error('Error fetching business with style:', error);
+        return { data: null, error };
+    }
+    
+    const styleData = Array.isArray(data.style) ? data.style[0] : data.style;
+    const finalData = { ...data, style: styleData };
+
+    return { data: finalData, error: null };
+}
+
+export async function getAllCompanies(supabase) {
+    const { data, error } = await supabase.from('companies').select('id, name').order('name', {ascending: true});
+    if (error) console.error('Error fetching all companies:', error);
     return data || [];
 }
 
-export async function getBusinesses(supabase) {
-    const { data, error } = await supabase
-        .from('businesses')
-        .select('*, company:companies(name)');
-    if (error) console.error('Error fetching businesses:', error);
+export async function getAllBusinesses(supabase) {
+    const { data, error } = await supabase.from('businesses').select('id, name').order('name', {ascending: true});
+    if (error) console.error('Error fetching all businesses:', error);
     return data || [];
+}
+
+// --- Funciones generales y reutilizables ---
+
+export async function deleteEntity(supabase, { tableName, id, isAdminDelete = false, adminSupabase = null }) {
+    if (isAdminDelete && tableName === 'users') {
+        if (!adminSupabase) throw new Error('Admin Supabase client is required for deleting users.');
+        const { error } = await adminSupabase.auth.admin.deleteUser(id);
+        if (error) console.error(`Error deleting user from auth with id ${id}:`, error);
+        return { error };
+    }
+    
+    const { error } = await supabase.from(tableName).delete().eq('id', id);
+    if (error) console.error(`Error deleting from ${tableName} with id ${id}:`, error);
+    return { error };
 }
 
 export async function getUsersByBusiness(supabase, businessId) {
@@ -132,41 +240,26 @@ export async function getUsersByBusiness(supabase, businessId) {
         console.error('Error fetching users by business:', error);
         return [];
     }
-    return data.map(u => ({ ...u, email: u.auth_user.email }));
+    return data.map(u => ({ ...u, email: u.auth_user?.email || 'N/A' }));
 }
 
-export async function getRatesByBusiness(supabase, businessId) {
-    const { data, error } = await supabase
-        .from('rates')
-        .select('*, provider:providers(name, logo_url)')
-        .eq('business_id', businessId)
-        .eq('is_active', true);
+export async function getProviders(supabase, { page = 1, pageSize = 10, searchQuery = '' } = {}) {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
 
-    if (error) {
-        console.error('Error fetching rates by business:', error);
-        return [];
+    let query = supabase
+        .from('providers')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+    if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`);
     }
-    return data;
-}
 
-export async function getProviders(supabase) {
-    const { data, error } = await supabase.from('providers').select('*');
+    const { data, error, count } = await query;
     if (error) console.error('Error fetching providers:', error);
-    return data || [];
-}
-
-export async function getProposalsByUser(supabase, userId) {
-    const { data, error } = await supabase
-        .from('proposals')
-        .select('*')
-        .eq('created_by_user_id', userId)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('Error fetching proposals by user:', error);
-        return [];
-    }
-    return data;
+    return { data: data || [], count: count || 0, error };
 }
 
 export async function getRoles(supabase) {

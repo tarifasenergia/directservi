@@ -1,4 +1,4 @@
-// /templates/layout.js (Actualizado con nuevo enlace para Superadmin)
+// /templates/layout.js
 
 import { ClientSideScripts } from '../client-scripts.js';
 import { escapeHTML } from '../utils.js';
@@ -14,14 +14,13 @@ const renderNavLinks = (roleName) => {
             return `
                 <li class="nav-item"><a class="nav-link" href="/superadmin/dashboard">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="/superadmin/businesses">Negocios</a></li>
-                <li class="nav-item"><a class="nav-link" href="/superadmin/users">Admins</a></li>
+                <li class="nav-item"><a class="nav-link" href="/superadmin/users">Usuarios</a></li>
                 <li class="nav-item"><a class="nav-link" href="/superadmin/providers">Proveedores</a></li> 
             `;
         case 'admin':
             return `
                 <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="/admin/users">Equipo</a></li>
-                <li class="nav-item"><a class="nav-link" href="/admin/providers">Proveedores</a></li>
                 <li class="nav-item"><a class="nav-link" href="/admin/rates">Tarifas</a></li>
                 <li class="nav-item"><a class="nav-link" href="/admin/styles">Apariencia</a></li>
             `;
@@ -53,9 +52,12 @@ const renderCustomStyles = (style) => {
         .btn-primary { 
             background-color: var(--primary-color);
             border-color: var(--primary-color);
+            color: white;
         }
         .btn-primary:hover {
             opacity: 0.9;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
         }
         .page-title {
             color: var(--primary-color);
@@ -74,7 +76,7 @@ export const Layout = (title, content, userProfile = null) => {
 
   const navLinks = user ? renderNavLinks(user.role_name) : '';
   const userNav = user ? `
-    <span class="navbar-text me-3">
+    <span class="navbar-text me-3 text-white">
       ${escapeHTML(user.full_name || user.id)} (${escapeHTML(user.role_name)})
     </span>
     <form id="logout-form" action="/logout" method="POST" style="display: inline;">
