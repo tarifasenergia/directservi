@@ -3,44 +3,46 @@
 import { ClientSideScripts } from '../client-scripts.js';
 import { escapeHTML } from '../utils.js';
 
-const BOOTSTRAP_CSS_CDN = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css";
-const BOOTSTRAP_JS_CDN = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js";
-const JSPDF_CDN = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-const JSPDF_AUTOTABLE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js";
+const BOOTSTRAP_CSS_CDN = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css';
+const BOOTSTRAP_JS_CDN = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js';
+const JSPDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+const JSPDF_AUTOTABLE_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js';
 
 const renderNavLinks = (roleName) => {
-    switch (roleName) {
-        case 'superadmin':
-            return `
+	switch (roleName) {
+		case 'superadmin':
+			return `
                 <li class="nav-item"><a class="nav-link" href="/superadmin/dashboard">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/superadmin/crm">CRM</a></li> 
                 <li class="nav-item"><a class="nav-link" href="/superadmin/businesses">Negocios</a></li>
                 <li class="nav-item"><a class="nav-link" href="/superadmin/users">Usuarios</a></li>
-                <li class="nav-item"><a class="nav-link" href="/superadmin/providers">Proveedores</a></li> 
+                <li class="nav-item"><a class="nav-link" href="/superadmin/providers">Proveedores</a></li>
+                <li class="nav-item"><a class="nav-link" href="/superadmin/tarifas">Tarifas</a></li> 
             `;
-        case 'admin':
-            return `
+		case 'admin':
+			return `
                 <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="/admin/users">Equipo</a></li>
                 <li class="nav-item"><a class="nav-link" href="/admin/rates">Tarifas</a></li>
                 <li class="nav-item"><a class="nav-link" href="/admin/styles">Apariencia</a></li>
             `;
-        case 'vendedor':
-            return `
+		case 'vendedor':
+			return `
                 <li class="nav-item"><a class="nav-link" href="/vendedor/comparator">Nuevo Comparador</a></li>
                 <li class="nav-item"><a class="nav-link" href="/vendedor/proposals">Mis Propuestas</a></li>
             `;
-        case 'tramitador':
-             return `
+		case 'tramitador':
+			return `
                 <li class="nav-item"><a class="nav-link" href="/tramitador/contracts">Contratos</a></li>
             `;
-        default:
-            return '';
-    }
+		default:
+			return '';
+	}
 };
 
 const renderCustomStyles = (style) => {
-    if (!style) return '';
-    return `
+	if (!style) return '';
+	return `
         :root {
             --bs-primary: ${escapeHTML(style.primary_color)};
             --bs-secondary: ${escapeHTML(style.secondary_color)};
@@ -67,26 +69,30 @@ const renderCustomStyles = (style) => {
 };
 
 export const Layout = (title, content, userProfile = null) => {
-  const user = userProfile;
-  const business = userProfile?.business;
-  const businessStyle = business?.style;
+	const user = userProfile;
+	const business = userProfile?.business;
+	const businessStyle = business?.style;
 
-  const logoUrl = businessStyle?.logo_base64 || "https://res.cloudinary.com/dvo5crvec/image/upload/v1750783138/LogoDirectservi_crfjot_e_background_removal_f_png_wpxyfs.png";
-  const appName = business?.name || 'DirectServi App';
+	const logoUrl =
+		businessStyle?.logo_base64 ||
+		'https://res.cloudinary.com/dvo5crvec/image/upload/v1750783138/LogoDirectservi_crfjot_e_background_removal_f_png_wpxyfs.png';
+	const appName = business?.name || 'DirectServi App';
 
-  const navLinks = user ? renderNavLinks(user.role_name) : '';
-  const userNav = user ? `
+	const navLinks = user ? renderNavLinks(user.role_name) : '';
+	const userNav = user
+		? `
     <span class="navbar-text me-3 text-white">
       ${escapeHTML(user.full_name || user.id)} (${escapeHTML(user.role_name)})
     </span>
     <form id="logout-form" action="/logout" method="POST" style="display: inline;">
         <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
     </form>
-  ` : `<a class="btn btn-outline-light btn-sm" href="/login">Login</a>`;
-  
-  const customStyles = renderCustomStyles(businessStyle);
+  `
+		: `<a class="btn btn-outline-light btn-sm" href="/login">Login</a>`;
 
-  return `
+	const customStyles = renderCustomStyles(businessStyle);
+
+	return `
     <!DOCTYPE html>
     <html lang="es">
     <head>

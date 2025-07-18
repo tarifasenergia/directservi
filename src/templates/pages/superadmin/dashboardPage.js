@@ -38,13 +38,6 @@ export const SuperAdminDashboardPage = (stats) => {
                 link: "/superadmin/businesses"
             })}
             ${StatCard({
-                title: "Usuarios Totales",
-                value: stats.users_count || 0,
-                color: "success",
-                description: `${stats.admins_count || 0} Admins, ${stats.sellers_count || 0} Vendedores`,
-                link: "/superadmin/users"
-            })}
-            ${StatCard({
                 title: "Compañías",
                 value: stats.companies_count || 0,
                 color: "info",
@@ -52,11 +45,18 @@ export const SuperAdminDashboardPage = (stats) => {
                 link: "/superadmin/businesses"
             })}
             ${StatCard({
+                title: "Usuarios Totales",
+                value: stats.users_count || 0,
+                color: "success",
+                description: `${stats.admins_count || 0} Admins, ${stats.sellers_count || 0} Vendedores`,
+                link: "/superadmin/users"
+            })}
+            ${StatCard({
                 title: "Tarifas Base",
                 value: stats.base_rates_count || 0,
                 color: "warning",
                 description: "Tarifas globales del sistema",
-                link: "#" // Se cambiará cuando exista la página de tarifas
+                link: "/superadmin/tarifas"
             })}
         </div>
       </div>

@@ -2,6 +2,34 @@
 
 export const ClientSideScripts = () => `
 
+  function openCompanyEditModal(id, name, cif, address) {
+    const companyModal = document.getElementById('companyModal');
+    if (!companyModal) return;
+    
+    const form = document.getElementById('companyForm');
+    const modalLabel = document.getElementById('companyModalLabel');
+    const submitBtn = document.getElementById('companySubmitBtn');
+    const idInput = document.getElementById('company_id_input');
+    const nameInput = document.getElementById('company_name_input');
+    const cifInput = document.getElementById('company_cif_input');
+    const addressInput = document.getElementById('company_address_input');
+    
+    // Configurar el modal para edición
+    form.action = '/superadmin/businesses?action=update_company';
+    modalLabel.textContent = 'Editar Compañía';
+    submitBtn.textContent = 'Guardar Cambios';
+    
+    // Llenar los campos con los datos
+    idInput.value = id;
+    nameInput.value = name;
+    cifInput.value = cif;
+    addressInput.value = address;
+    
+    // Mostrar el modal
+    const modal = new bootstrap.Modal(companyModal);
+    modal.show();
+  }
+
   function setVisible(element, visible) {
     if (element) {
       if (visible) {
@@ -9,6 +37,56 @@ export const ClientSideScripts = () => `
       } else {
         element.classList.add('d-none');
       }
+    }
+  }
+
+  function openAddBusinessModal(companyId, companyName) {
+    const modal = document.getElementById('addBusinessModal');
+    if (!modal) return;
+    
+    const companyIdInput = document.getElementById('add_business_company_id');
+    const companyNameSpan = document.getElementById('selected_company_name');
+    const nameInput = document.getElementById('add_business_name_input');
+    
+    // Preseleccionar la compañía
+    companyIdInput.value = companyId;
+    companyNameSpan.textContent = companyName;
+    
+    // Limpiar el formulario
+    nameInput.value = '';
+    document.getElementById('add_business_status_select').value = 'active';
+    document.getElementById('add_primary_color_input').value = '#399f82';
+    document.getElementById('add_secondary_color_input').value = '#4a4548';
+    document.getElementById('add_logo_file_input').value = '';
+    document.getElementById('add_logo_b64_hidden').value = '';
+    
+    const previewImg = document.getElementById('add_logo_preview_img');
+    if (previewImg) {
+      previewImg.classList.add('d-none');
+    }
+    
+    // Mostrar el modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+  }
+
+  function previewAddLogo(event) {
+    const reader = new FileReader();
+    const output = document.getElementById('add_logo_preview_img');
+    const base64Field = document.getElementById('add_logo_b64_hidden');
+    
+    reader.onload = function() {
+      if (output) {
+        output.src = reader.result;
+        output.classList.remove('d-none');
+      }
+      if (base64Field) {
+        base64Field.value = reader.result;
+      }
+    };
+    
+    if (event.target.files[0]) {
+      reader.readAsDataURL(event.target.files[0]);
     }
   }
 
@@ -267,6 +345,43 @@ export const ClientSideScripts = () => `
                 businessSelect.disabled = false;
             }
         });
+    }
+
+    // --- Lógica para etiquetas de compañía clickeables ---
+    document.querySelectorAll('.company-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const data = e.currentTarget.dataset;
+            openCompanyEditModal(
+                data.companyId,
+                data.companyName,
+                data.companyCif,
+                data.companyAddress
+            );
+        });
+    });
+
+    // --- Lógica para botones "Agregar" negocio ---
+    document.querySelectorAll('.add-business-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const data = e.currentTarget.dataset;
+            openAddBusinessModal(data.companyId, data.companyName);
+        });
+    });
+
+    // --- Lógica para abrir modal automáticamente desde URL ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const editCompanyId = urlParams.get('edit');
+    
+    if (editCompanyId && companyModal) {
+        // Buscar el botón de editar correspondiente a la compañía
+        const editButton = document.querySelector('button[data-id="' + editCompanyId + '"]');
+        if (editButton) {
+            // Simular click en el botón de editar
+            editButton.click();
+            // Mostrar el modal
+            const modal = new bootstrap.Modal(companyModal);
+            modal.show();
+        }
     }
 
   });

@@ -128,6 +128,22 @@ export default {
                         if(styleError) message += ` Pero hubo un error al guardar el estilo: ${styleError.message}`;
                     }
                     url.searchParams.set('entity', 'businesses');
+                } else if (action === 'add_business_to_company') {
+                    const { data: busData, error: busError } = await supabase.from('businesses').insert({ name: formData.get('name'), company_id: formData.get('company_id'), status: formData.get('status') || 'active' }).select().single();
+                    if(busError) {
+                        message = `Error creando negocio: ${busError.message}`;
+                    } else {
+                        message = 'Negocio creado con éxito.';
+                        const styleData = {
+                            business_id: busData.id,
+                            logo_base64: formData.get('logo_base64') || null,
+                            primary_color: formData.get('primary_color') || '#399f82',
+                            secondary_color: formData.get('secondary_color') || '#4a4548'
+                        };
+                        const { error: styleError } = await supabase.from('business_styles').upsert(styleData);
+                        if(styleError) message += ` Pero hubo un error al guardar el estilo: ${styleError.message}`;
+                    }
+                    url.searchParams.set('entity', 'companies');
                 } else if (action === 'update_business') {
                     const id = formData.get('id');
                     const { error: busError } = await supabase.from('businesses').update({ name: formData.get('name'), company_id: formData.get('company_id'), status: formData.get('status') }).eq('id', id);

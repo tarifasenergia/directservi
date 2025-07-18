@@ -153,7 +153,7 @@ export async function getCompanies(supabase, { page = 1, pageSize = 10, searchQu
 
     let query = supabase
         .from('companies')
-        .select('*', { count: 'exact' })
+        .select('*, businesses(id, name)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -163,7 +163,14 @@ export async function getCompanies(supabase, { page = 1, pageSize = 10, searchQu
 
     const { data, error, count } = await query;
     if (error) console.error('Error fetching companies:', error);
-    return { data: data || [], count: count || 0, error };
+    
+    // Agregar conteo de negocios asociados a cada compañía
+    const companiesWithBusinessCount = (data || []).map(company => ({
+        ...company,
+        business_count: company.businesses ? company.businesses.length : 0
+    }));
+    
+    return { data: companiesWithBusinessCount, count: count || 0, error };
 }
 
 export async function getBusinesses(supabase, { page = 1, pageSize = 10, searchQuery = '' } = {}) {
